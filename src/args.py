@@ -45,13 +45,13 @@ def get_train_args():
     parser.add_argument(
         "--data_path",
         type=str,
-        default="/data20TB/ZZZ/MindEyeV2",
+        default="/data20TB/lzg/MindEyeV2",
         help="Path to where NSD data is stored / where to download it to",
     )
     parser.add_argument(
         "--cache_dir",
         type=str,
-        default="/data20TB/ZZZ/MindEyeV2",
+        default="/data20TB/lzg/MindEyeV2",
         help="Path to where misc. files downloaded from huggingface are stored. Defaults to current src directory.",
     )
     parser.add_argument(
@@ -80,9 +80,15 @@ def get_train_args():
         help="whether to train diffusion prior (True) or just rely on retrieval part of the pipeline (False)",
     )
     parser.add_argument(
+        "--sam_use_prior",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="whether to train diffusion prior (True) or just rely on retrieval part of the pipeline (False)",
+    )
+    parser.add_argument(
         "--batch_size",
         type=int,
-        default=16,
+        default=32,
         help="Batch size can be increased by 10x if only training retreival submodule and not diffusion prior",
     )
     parser.add_argument(
@@ -122,10 +128,21 @@ def get_train_args():
         help="multiply contrastive loss by this number",
     )
     parser.add_argument(
+        "--sam_scale",
+        type=float,
+        default=1.0,
+        help="multiply contrastive loss by this number",
+    )
+    parser.add_argument(
         "--prior_scale",
         type=float,
         default=30,
         help="multiply diffusion prior loss by this",
+    )
+    parser.add_argument(
+        "--sam_prior_scale",
+        type=float,
+        default=15
     )
     parser.add_argument(
         "--use_image_aug",
@@ -157,7 +174,7 @@ def get_train_args():
     parser.add_argument(
         "--hidden_dim",
         type=int,
-        default=1024,
+        default=4096,
     )
     parser.add_argument(
         "--lr_scheduler_type",
@@ -200,6 +217,12 @@ def get_train_args():
         "--detach_reset",
         type=argparse.BooleanOptionalAction,
         default=True,
+    )
+    parser.add_argument(
+        "--device",
+        type=int,
+        default=0,
+        help="which GPU to use for training"
     )
     return parser.parse_args()
 

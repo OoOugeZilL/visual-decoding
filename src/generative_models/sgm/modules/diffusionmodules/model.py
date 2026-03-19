@@ -6,6 +6,7 @@ from typing import Any, Callable, Optional
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from einops import rearrange
 from packaging import version
 
@@ -236,26 +237,30 @@ class MemoryEfficientAttnBlock(nn.Module):
 
         # compute attention
         B, C, H, W = q.shape
-        q, k, v = map(lambda x: rearrange(x, "b c h w -> b (h w) c"), (q, k, v))
+        N = H * W # Sequence length
 
-        q, k, v = map(
-            lambda t: t.unsqueeze(3)
-            .reshape(B, t.shape[1], 1, C)
-            .permute(0, 2, 1, 3)
-            .reshape(B * 1, t.shape[1], C)
-            .contiguous(),
-            (q, k, v),
-        )
-        out = xformers.ops.memory_efficient_attention(
-            q, k, v, attn_bias=None, op=self.attention_op
-        )
+        # 3. Flatten spatial dims: [B, C, H, W] -> [B, SequenceLength, C]
+        q = rearrange(q, "b c h w -> b (h w) c")
+        k = rearrange(k, "b c h w -> b (h w) c")
+        v = rearrange(v, "b c h w -> b (h w) c")
 
-        out = (
-            out.unsqueeze(0)
-            .reshape(B, 1, out.shape[1], C)
-            .permute(0, 2, 1, 3)
-            .reshape(B, out.shape[1], C)
-        )
+        # 4. Prepare for scaled_dot_product_attention
+        # SDPA expects inputs of shape [Batch, NumHeads, SeqLen, HeadDim].
+        # Because the original was Single-Head, we have NumHeads=1 and HeadDim=C.
+        # We unsqueeze to add the head dimension at index 1.
+        # Current shape: [B, N, C] -> Target shape: [B, 1, N, C]
+        q_mh = q.unsqueeze(1)
+        k_mh = k.unsqueeze(1)
+        v_mh = v.unsqueeze(1)
+
+        # 5. Compute Scaled Dot-Product Attention
+        # PyTorch automatically handles the scaling by 1/sqrt(HeadDim) (which is 1/sqrt(C) here).
+        out_mh = F.scaled_dot_product_attention(q_mh, k_mh, v_mh, is_causal=False)
+
+        # 6. Reshape back: [B, 1, N, C] -> [B, N, C]
+        out = out_mh.squeeze(1)
+
+        # 7. Spatial rearrange back to [B, C, H, W]
         return rearrange(out, "b (h w) c -> b c h w", b=B, h=H, w=W, c=C)
 
     def forward(self, x, **kwargs):

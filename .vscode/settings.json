@@ -1,5 +1,12 @@
 {
     "python.analysis.extraPaths": [
         "./src/generative_models"
-    ]
+    ],
+    "python.languageServer": "Pylance",
+    "python.analysis.autoImportCompletions": true,
+    "editor.quickSuggestions": {
+        "other": "on",
+        "comments": "off",
+        "strings": "on"
+    }
 }

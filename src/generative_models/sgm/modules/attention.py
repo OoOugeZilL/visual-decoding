@@ -49,6 +49,7 @@ else:
 try:
     import xformers
     import xformers.ops
+    # xformers.ops.memory_efficient_attention = None
 
     XFORMERS_IS_AVAILABLE = True
 except:

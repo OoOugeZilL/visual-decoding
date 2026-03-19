@@ -256,7 +256,7 @@ def unclip_recon(x, diffusion_engine, vector_suffix,
     assert x.ndim==3
     if x.shape[0]==1:
         x = x[[0]]
-    with torch.no_grad(), torch.cuda.amp.autocast(dtype=torch.float16), diffusion_engine.ema_scope():
+    with torch.no_grad(), torch.amp.autocast("cuda", dtype=torch.float16), diffusion_engine.ema_scope():
         z = torch.randn(num_samples,4,96,96).to(device) # starting noise, can change to VAE outputs of initial image for img2img
 
         # clip_img_tokenized = clip_img_embedder(image) 

@@ -40,6 +40,7 @@ from transformers.modeling_utils import PreTrainedModel
 from transformers.pytorch_utils import apply_chunking_to_forward, find_pruneable_heads_and_indices, prune_linear_layer
 from transformers.utils import add_start_docstrings, add_start_docstrings_to_model_forward, logging, replace_return_docstrings
 from transformers.models.git.configuration_git import GitConfig, GitVisionConfig
+from transformers.generation.utils import GenerationMixin
 
 
 logger = logging.get_logger(__name__)
@@ -189,7 +190,7 @@ class GitSelfAttention(nn.Module):
         mixed_query_layer = self.query(hidden_states)
 
         cutoff = self.image_patch_tokens if pixel_values_present else 0
-        if past_key_value is not None:
+        if past_key_value is not None and past_key_value[0] is not None:
             key_layer = self.transpose_for_scores(self.key(hidden_states))
             value_layer = self.transpose_for_scores(self.value(hidden_states))
             key_layer = torch.cat([key_layer[:, :, :cutoff, :], past_key_value[0], key_layer[:, :, -1:, :]], dim=2)
@@ -1960,7 +1961,11 @@ class GitModelClipEmb(GitPreTrainedModel):
         seq_length = input_shape[1]
 
         # past_key_values_length
-        past_key_values_length = past_key_values[0][0].shape[2] if past_key_values is not None else 0
+        # past_key_values_length = past_key_values[0][0].shape[2] if past_key_values is not None else 0
+        if past_key_values is not None and past_key_values[0][0] is not None:
+            past_key_values_length = past_key_values[0][0].shape[2]
+        else:
+            past_key_values_length = 0
 
         # Prepare head mask if needed
         # 1.0 in head_mask indicate we keep the head

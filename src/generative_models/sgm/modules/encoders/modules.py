@@ -487,7 +487,7 @@ class FrozenOpenCLIPEmbedder2(AbstractEmbModel):
             ):
                 x = checkpoint(r, x, attn_mask)
             else:
-                x = r(x, attn_mask=attn_mask)
+                x = r(x, attn_mask=None if attn_mask is not None else None)
         outputs["last"] = x.permute(1, 0, 2)  # LND -> NLD
         return outputs
 
